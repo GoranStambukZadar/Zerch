@@ -66,9 +66,6 @@
             font-size: 0.9rem;
             color: #777;
         }
-        iframe {
-            display: none; /* Hidden iframe for Yahoo results */
-        }
     </style>
 </head>
 <body>
@@ -88,13 +85,18 @@
         function checkEnter(event) {
             if (event.key === 'Enter') {
                 event.preventDefault(); // Prevent form submission on Enter
+                console.log('Enter key pressed. Triggering form submission.');
                 document.getElementById('search-form').requestSubmit(); // Manually submit form
             }
         }
 
+        // Form submission handler
         document.getElementById('search-form').addEventListener('submit', function(event) {
             event.preventDefault();  // Prevent form from submitting and refreshing the page
+            console.log('Form submitted.');
+
             const query = document.getElementById('search-query').value;
+            console.log('Search query:', query);
 
             if (!query) {
                 alert("Please enter a search query!");
@@ -108,14 +110,20 @@
             const yandexUser = 'f0ae53146ff6474f9c4e1e799855bc2c';
             const yandexSearchUrl = `https://yandex.com/search/xml?user=${yandexUser}&key=${yandexApiKey}&query=${query}`;
 
+            console.log('Making API calls...');
+            
             // Fetch search results
             Promise.all([
                 fetch(`https://www.googleapis.com/customsearch/v1?q=${query}&key=${googleApiKey}&cx=${googleSearchEngineId}`),
                 fetch(yandexSearchUrl),
                 fetch(`https://api.duckduckgo.com/?q=${query}&format=json`)
             ])
-            .then(responses => Promise.all(responses.map(res => res.json())))
+            .then(responses => {
+                console.log('API calls completed.');
+                return Promise.all(responses.map(res => res.json()));
+            })
             .then(data => {
+                console.log('API response data:', data);
                 let combinedResults = [];
 
                 // Process Google results
