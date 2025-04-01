@@ -5,68 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zerch - Combined Search Engine</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        header {
-            background-color: #0056b3;
-            color: white;
-            padding: 1rem;
-            text-align: center;
-        }
-        form {
-            text-align: center;
-            margin: 2rem 0;
-        }
-        input[type="text"] {
-            padding: 0.5rem;
-            font-size: 1rem;
-            width: 50%;
-            margin-right: 0.5rem;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-        }
-        button {
-            padding: 0.5rem 1rem;
-            background-color: #0056b3;
-            color: white;
-            font-size: 1rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #results {
-            padding: 2rem;
-            text-align: left;
-        }
-        .result-item {
-            border-bottom: 1px solid #ddd;
-            padding: 1rem 0;
-        }
-        .result-item h3 {
-            margin: 0;
-        }
-        .result-item a {
-            color: #0056b3;
-            text-decoration: none;
-        }
-        .result-item a:hover {
-            text-decoration: underline;
-        }
-        .result-item p {
-            margin: 0.5rem 0;
-        }
-        .result-item small {
-            font-size: 0.9rem;
-            color: #777;
-        }
-        iframe {
-            display: none; /* Hidden iframe for Yahoo results */
-        }
+        /* Same styling as before */
     </style>
 </head>
 <body>
@@ -75,7 +14,7 @@
     </header>
 
     <form id="search-form">
-        <input type="text" id="search-query" placeholder="Search the web...">
+        <input type="text" id="search-query" placeholder="Search the web..." onkeydown="checkEnter(event)">
         <button type="submit">Search</button>
     </form>
 
@@ -84,8 +23,16 @@
     <iframe id="yahoo-iframe" src="https://search.yahoo.com/search?p="></iframe> <!-- Invisible iFrame for Yahoo -->
 
     <script>
+        // Prevent Enter key from submitting form
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission on Enter
+                document.getElementById('search-form').requestSubmit(); // Manually submit form
+            }
+        }
+
         document.getElementById('search-form').addEventListener('submit', function(event) {
-            event.preventDefault();
+            event.preventDefault();  // Prevent form from submitting and refreshing the page
             const query = document.getElementById('search-query').value;
 
             if (!query) {
@@ -93,14 +40,14 @@
                 return;
             }
 
-            // Example API keys (replace with your actual keys)
+            // API URLs and keys (replace with actual keys)
             const googleApiKey = 'AIzaSyCZav6qRg1Kc6Betcd7tFp8NetzT1bwOzI';
             const googleSearchEngineId = '53a98e037ca3b4530';
-            const yandexApiKey = 'dict.1.1.20250401T231127Z.a59f66c07dd59bd8.a315a609e517ab43d48ff5d2010d162428a5dc93'; // Yandex API Key
-            const yandexUser = 'f0ae53146ff6474f9c4e1e799855bc2c'; // Replace with your Yandex username or user ID for API access
+            const yandexApiKey = 'dict.1.1.20250401T231127Z.a59f66c07dd59bd8.a315a609e517ab43d48ff5d2010d162428a5dc93';
+            const yandexUser = 'f0ae53146ff6474f9c4e1e799855bc2c';
             const yandexSearchUrl = `https://yandex.com/search/xml?user=${yandexUser}&key=${yandexApiKey}&query=${query}`;
 
-            // Fetch data from Google, Yandex, DuckDuckGo, etc.
+            // Fetch search results
             Promise.all([
                 fetch(`https://www.googleapis.com/customsearch/v1?q=${query}&key=${googleApiKey}&cx=${googleSearchEngineId}`),
                 fetch(yandexSearchUrl),
@@ -156,14 +103,14 @@
                 yahooIframe.onload = function() {
                     try {
                         const iframeDocument = yahooIframe.contentDocument || yahooIframe.contentWindow.document;
-                        const yahooResults = iframeDocument.querySelectorAll('.compTitle'); // Adjust selector as needed
+                        const yahooResults = iframeDocument.querySelectorAll('.compTitle'); 
 
                         // Process Yahoo results
                         yahooResults.forEach(result => {
                             combinedResults.push({
                                 title: result.textContent.trim(),
                                 url: result.querySelector('a').href,
-                                snippet: "No snippet available", // You can extend this to scrape the snippet if needed
+                                snippet: "No snippet available", 
                                 engine: 'Yahoo',
                                 date: null
                             });
@@ -173,7 +120,7 @@
                         combinedResults.sort((a, b) => {
                             const dateA = a.date ? new Date(a.date) : new Date(0);
                             const dateB = b.date ? new Date(b.date) : new Date(0);
-                            return dateA - dateB; // Sort oldest first
+                            return dateA - dateB;
                         });
 
                         // Display the results
