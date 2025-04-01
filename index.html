@@ -20,8 +20,6 @@
 
     <div id="results"></div>
 
-    <iframe id="yahoo-iframe" src="https://search.yahoo.com/search?p="></iframe> <!-- Invisible iFrame for Yahoo -->
-
     <script>
         // Prevent Enter key from submitting form
         function checkEnter(event) {
@@ -95,41 +93,26 @@
                     }
                 });
 
-                // Embed Yahoo search results using iframe
-                const yahooIframe = document.getElementById('yahoo-iframe');
-                yahooIframe.src = `https://search.yahoo.com/search?p=${query}`;
+                // Display Yahoo search link instead of embedding iframe
+                const yahooSearchUrl = `https://search.yahoo.com/search?p=${query}`;
+                combinedResults.push({
+                    title: `Search Yahoo for "${query}"`,
+                    url: yahooSearchUrl,
+                    snippet: "Click to view Yahoo results",
+                    engine: 'Yahoo',
+                    date: null
+                });
 
-                // Wait for iframe to load before attempting to extract results
-                yahooIframe.onload = function() {
-                    try {
-                        const iframeDocument = yahooIframe.contentDocument || yahooIframe.contentWindow.document;
-                        const yahooResults = iframeDocument.querySelectorAll('.compTitle'); 
+                // Now combine and sort all results by date
+                combinedResults.sort((a, b) => {
+                    const dateA = a.date ? new Date(a.date) : new Date(0);
+                    const dateB = b.date ? new Date(b.date) : new Date(0);
+                    return dateA - dateB;
+                });
 
-                        // Process Yahoo results
-                        yahooResults.forEach(result => {
-                            combinedResults.push({
-                                title: result.textContent.trim(),
-                                url: result.querySelector('a').href,
-                                snippet: "No snippet available", 
-                                engine: 'Yahoo',
-                                date: null
-                            });
-                        });
+                // Display the results
+                displayResults(combinedResults);
 
-                        // Now combine and sort all results by date
-                        combinedResults.sort((a, b) => {
-                            const dateA = a.date ? new Date(a.date) : new Date(0);
-                            const dateB = b.date ? new Date(b.date) : new Date(0);
-                            return dateA - dateB;
-                        });
-
-                        // Display the results
-                        displayResults(combinedResults);
-
-                    } catch (error) {
-                        console.error('Error extracting Yahoo results:', error);
-                    }
-                };
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
