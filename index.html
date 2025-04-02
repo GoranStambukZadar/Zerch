@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zerch</title>
+    <title>Zerch - Combined Search Engine</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,9 +66,6 @@
             font-size: 0.9rem;
             color: #777;
         }
-        iframe {
-            display: none; /* Hidden iframe for Yahoo results */
-        }
     </style>
 </head>
 <body>
@@ -82,8 +79,6 @@
     </form>
 
     <div id="results"></div>
-
-    <iframe id="yahoo-iframe" src="https://search.yahoo.com/search?p="></iframe> <!-- Invisible iFrame for Yahoo -->
 
     <script>
         // Prevent Enter key from submitting form
@@ -133,67 +128,43 @@
                         }
                     });
 
-                    // Embed Yahoo search results using iframe
-                    const yahooIframe = document.getElementById('yahoo-iframe');
-                    yahooIframe.src = `https://search.yahoo.com/search?p=${query}`;
+                    // Provide a link to Yahoo search results
+                    const yahooSearchUrl = `https://search.yahoo.com/search?p=${query}`;
 
-                    // Wait for iframe to load before attempting to extract results
-                    yahooIframe.onload = function() {
-                        try {
-                            const iframeDocument = yahooIframe.contentDocument || yahooIframe.contentWindow.document;
-                            const yahooResults = iframeDocument.querySelectorAll('.compTitle'); // Adjust selector as needed
-
-                            // Process Yahoo results
-                            yahooResults.forEach(result => {
-                                combinedResults.push({
-                                    title: result.textContent.trim(),
-                                    url: result.querySelector('a').href,
-                                    snippet: "No snippet available", // You can extend this to scrape the snippet if needed
-                                    engine: 'Yahoo',
-                                    date: null
-                                });
-                            });
-
-                            // Now combine and sort all results by date
-                            combinedResults.sort((a, b) => {
-                                const dateA = a.date ? new Date(a.date) : new Date(0);
-                                const dateB = b.date ? new Date(b.date) : new Date(0);
-                                return dateA - dateB; // Sort oldest first
-                            });
-
-                            // Display the results
-                            displayResults(combinedResults);
-
-                        } catch (error) {
-                            console.error('Error extracting Yahoo results:', error);
-                        }
-                    };
+                    // Display the results
+                    displayResults(combinedResults, yahooSearchUrl);
                 })
                 .catch(error => {
                     console.error('Error fetching DuckDuckGo data:', error);
                 });
         });
 
-        function displayResults(results) {
+        function displayResults(results, yahooUrl) {
             const resultsContainer = document.getElementById('results');
             resultsContainer.innerHTML = ''; // Clear previous results
 
             // Check if we have no results to display
             if (results.length === 0) {
                 resultsContainer.innerHTML = '<p>No results found. Please try again with different keywords.</p>';
-                return;
+            } else {
+                results.forEach(result => {
+                    const resultElement = document.createElement('div');
+                    resultElement.classList.add('result-item');
+                    resultElement.innerHTML = `
+                        <h3><a href="${result.url}" target="_blank">${result.title}</a></h3>
+                        <p>${result.snippet}</p>
+                        <small>Source: ${result.engine}</small>
+                    `;
+                    resultsContainer.appendChild(resultElement);
+                });
             }
 
-            results.forEach(result => {
-                const resultElement = document.createElement('div');
-                resultElement.classList.add('result-item');
-                resultElement.innerHTML = `
-                    <h3><a href="${result.url}" target="_blank">${result.title}</a></h3>
-                    <p>${result.snippet}</p>
-                    <small>Source: ${result.engine}${result.date ? ' | Date: ' + new Date(result.date).toLocaleDateString() : ''}</small>
-                `;
-                resultsContainer.appendChild(resultElement);
-            });
+            // Add a link to Yahoo search results
+            const yahooLink = document.createElement('div');
+            yahooLink.innerHTML = `
+                <p>See more results on <a href="${yahooUrl}" target="_blank">Yahoo</a></p>
+            `;
+            resultsContainer.appendChild(yahooLink);
         }
     </script>
 </body>
