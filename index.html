@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zerch - Combined Search Engine</title>
+    <title>Zerch</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,6 +66,9 @@
             font-size: 0.9rem;
             color: #777;
         }
+        iframe {
+            display: none; /* Hidden iframe for Yahoo results */
+        }
     </style>
 </head>
 <body>
@@ -79,6 +82,8 @@
     </form>
 
     <div id="results"></div>
+
+    <iframe id="yahoo-iframe" src="https://search.yahoo.com/search?p="></iframe> <!-- Invisible iFrame for Yahoo -->
 
     <script>
         // Prevent Enter key from submitting form
@@ -103,91 +108,70 @@
                 return;
             }
 
-            // API URLs and keys (replace with actual keys)
-            const googleApiKey = 'AIzaSyCZav6qRg1Kc6Betcd7tFp8NetzT1bwOzI';
-            const googleSearchEngineId = '53a98e037ca3b4530';
-            const yandexApiKey = 'dict.1.1.20250401T231127Z.a59f66c07dd59bd8.a315a609e517ab43d48ff5d2010d162428a5dc93';
-            const yandexUser = 'f0ae53146ff6474f9c4e1e799855bc2c';
-            const yandexSearchUrl = `https://yandex.com/search/xml?user=${yandexUser}&key=${yandexApiKey}&query=${query}`;
+            // Fetch DuckDuckGo search results
+            const duckDuckGoUrl = `https://api.duckduckgo.com/?q=${query}&format=json`;
 
-            console.log('Making API calls...');
+            console.log('Making DuckDuckGo API call...');
             
-            // Fetch search results
-            Promise.all([
-                fetch(`https://www.googleapis.com/customsearch/v1?q=${query}&key=${googleApiKey}&cx=${googleSearchEngineId}`),
-                fetch(yandexSearchUrl),
-                fetch(`https://api.duckduckgo.com/?q=${query}&format=json`)
-            ])
-            .then(responses => {
-                console.log('API calls completed.');
-                return Promise.all(responses.map(res => res.json()));
-            })
-            .then(data => {
-                console.log('API response data:', data);
-                let combinedResults = [];
+            fetch(duckDuckGoUrl)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('DuckDuckGo response data:', data);
+                    let combinedResults = [];
 
-                // Process Google results
-                const googleResults = data[0].items || [];
-                googleResults.forEach(item => {
-                    combinedResults.push({
-                        title: item.title,
-                        url: item.link,
-                        snippet: item.snippet,
-                        engine: 'Google',
-                        date: item.pagemap && item.pagemap.metatags ? item.pagemap.metatags['date'] : null
+                    // Process DuckDuckGo results
+                    const duckResults = data.RelatedTopics || [];
+                    duckResults.forEach(item => {
+                        if (item.Result) {
+                            combinedResults.push({
+                                title: item.Text,
+                                url: item.FirstURL,
+                                snippet: item.Text,
+                                engine: 'DuckDuckGo',
+                                date: null
+                            });
+                        }
                     });
+
+                    // Embed Yahoo search results using iframe
+                    const yahooIframe = document.getElementById('yahoo-iframe');
+                    yahooIframe.src = `https://search.yahoo.com/search?p=${query}`;
+
+                    // Wait for iframe to load before attempting to extract results
+                    yahooIframe.onload = function() {
+                        try {
+                            const iframeDocument = yahooIframe.contentDocument || yahooIframe.contentWindow.document;
+                            const yahooResults = iframeDocument.querySelectorAll('.compTitle'); // Adjust selector as needed
+
+                            // Process Yahoo results
+                            yahooResults.forEach(result => {
+                                combinedResults.push({
+                                    title: result.textContent.trim(),
+                                    url: result.querySelector('a').href,
+                                    snippet: "No snippet available", // You can extend this to scrape the snippet if needed
+                                    engine: 'Yahoo',
+                                    date: null
+                                });
+                            });
+
+                            // Now combine and sort all results by date
+                            combinedResults.sort((a, b) => {
+                                const dateA = a.date ? new Date(a.date) : new Date(0);
+                                const dateB = b.date ? new Date(b.date) : new Date(0);
+                                return dateA - dateB; // Sort oldest first
+                            });
+
+                            // Display the results
+                            displayResults(combinedResults);
+
+                        } catch (error) {
+                            console.error('Error extracting Yahoo results:', error);
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error fetching DuckDuckGo data:', error);
                 });
-
-                // Process Yandex results
-                const yandexResults = data[1].response.results.result || [];
-                yandexResults.forEach(item => {
-                    combinedResults.push({
-                        title: item.title,
-                        url: item.url,
-                        snippet: item.passages ? item.passages[0] : 'No snippet available',
-                        engine: 'Yandex',
-                        date: item.date || null
-                    });
-                });
-
-                // Process DuckDuckGo results
-                const duckResults = data[2].RelatedTopics || [];
-                duckResults.forEach(item => {
-                    if (item.Result) {
-                        combinedResults.push({
-                            title: item.Text,
-                            url: item.FirstURL,
-                            snippet: item.Text,
-                            engine: 'DuckDuckGo',
-                            date: null
-                        });
-                    }
-                });
-
-                // Display Yahoo search link instead of embedding iframe
-                const yahooSearchUrl = `https://search.yahoo.com/search?p=${query}`;
-                combinedResults.push({
-                    title: `Search Yahoo for "${query}"`,
-                    url: yahooSearchUrl,
-                    snippet: "Click to view Yahoo results",
-                    engine: 'Yahoo',
-                    date: null
-                });
-
-                // Now combine and sort all results by date
-                combinedResults.sort((a, b) => {
-                    const dateA = a.date ? new Date(a.date) : new Date(0);
-                    const dateB = b.date ? new Date(b.date) : new Date(0);
-                    return dateA - dateB;
-                });
-
-                // Display the results
-                displayResults(combinedResults);
-
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
         });
 
         function displayResults(results) {
